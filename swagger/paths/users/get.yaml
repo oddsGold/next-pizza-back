@@ -1,0 +1,40 @@
+tags:
+  - Users
+summary: Get list of users
+operationId: getUsers
+description: 'Get list of users with this endpoint'
+security: []
+responses:
+  '200':
+    description: Get count of all users
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - status
+            - message
+            - data
+          properties:
+            status:
+              type: integer
+              example: 200
+            message:
+              type: string
+              example: Successfully retrieved user count
+            data:
+              type: object
+              properties:
+                totalUsersCount:
+                  type: integer
+                  description: 'Number of all users'
+                  example: 32
+                randomAvatars:
+                  type: array
+                  items:
+                    type: string
+                    example: 'https://i.pinimg.com/736x/7b/8c/d8/7b8cd8b068e4b9f80b4bcf0928d7d499.jpg'
+                    description: path to user photo
+
+  '404':
+    $ref: '../../components/responses/404.yaml'

@@ -1,0 +1,66 @@
+openapi: 3.1.0
+info:
+  version: 1.0.0
+  title: AquaApp
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  description: This is a documentation of AquaApp
+tags:
+  - name: Users
+    description: Operations about users.
+  - name: Water
+    description: Operations related to water consumption.
+  - name: Auth
+    description: Auth operations.
+servers:
+  - url: https://project-aquaapp-back.onrender.com
+paths:
+  /auth/register:
+    post:
+      $ref: '../swagger/paths/auth/register/post.yaml'
+  /auth/login:
+    post:
+      $ref: '../swagger/paths/auth/login/post.yaml'
+  /auth/logout:
+    post:
+      $ref: '../swagger/paths/auth/logout/post.yaml'
+  /auth/refresh:
+    post:
+      $ref: '../swagger/paths/auth/refresh-acces-token/post.yaml'
+  # /auth/get-oauth-url:
+  #   get:
+  #     $ref: '../swagger/paths/auth/googleOAuth/get.yaml'
+  # /auth/confirm-oauth:
+  #   post:
+  #     $ref: '../swagger/paths/auth/googleOAuth/post.yaml'
+  /auth/reset-pwd:
+    post:
+      $ref: '../swagger/paths/auth/resetPassword/post.yaml'
+  /users:
+    get:
+      $ref: '../swagger/paths/users/get.yaml'
+  /account:
+    patch:
+      $ref: '../swagger/paths/users/patch.yaml'
+    get:
+      $ref: '../swagger/paths/users/{token}/get.yaml'
+  /water:
+    post:
+      $ref: '../swagger/paths/water/post.yaml'
+  /water/{waterId}:
+    delete:
+      $ref: '../swagger/paths/water/{id}/delete.yaml'
+    patch:
+      $ref: '../swagger/paths/water/{id}/patch.yaml'
+  /water/day:
+    get:
+      $ref: '../swagger/paths/water/daily/get.yaml'
+  /water/month:
+    get:
+      $ref: '../swagger/paths/water/monthly/get.yaml'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
