@@ -42,6 +42,16 @@ class PermissionController {
     });
   }
 
+  async createPermissions(req, res, next) {
+    const permissions = await PermissionsService.addPermission(req.body);
+
+    res.status(201).json({
+      status: 201,
+      message: `Successfully created permission!`,
+      data: permissions
+    });
+  }
+
 }
 
 export default new PermissionController();

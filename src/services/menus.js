@@ -1,9 +1,6 @@
 import { MenuCollection } from '../db/models/menu.js';
 import { RolePermissionCollection } from '../db/models/rolePermission.js';
 
-// Константи для зрозумілих умов
-const HEADER_MENU_CONDITION = { resource_id: null };
-
 class MenusService {
   /**
    * Отримує меню для конкретної ролі
@@ -11,53 +8,65 @@ class MenusService {
    * @returns {Promise<Array>} - Дерево меню
    */
   async getMenus(roleId) {
-    const allowedPermissionIds = await this.getAllowedPermissionIds(roleId);
-    const menuMap = await this.buildMenuMap(allowedPermissionIds);
+    const allowedPermissionPairs = await this.getAllowedPermissionPairs(roleId);
+    const menuMap = await this.buildMenuMap(allowedPermissionPairs);
     return this.buildMenuTree(menuMap);
   }
 
   /**
-   * Отримує дозволені permission IDs для ролі
+   * Отримує дозволені пари (resourceId + permissionId) для ролі
    * @param {string} roleId - ID ролі
-   * @returns {Promise<Array<string>>} - Масив дозволених permission IDs
+   * @returns {Promise<Array<{resource_id: string, permission_id: string}>>}
    */
-  async getAllowedPermissionIds(roleId) {
+  async getAllowedPermissionPairs(roleId) {
     const rolePermissions = await RolePermissionCollection.find({ roleId })
-      .select('permissionId')
+      .select('resourceId permissionId')
       .lean();
 
     return rolePermissions
-      .map(rp => rp.permissionId?.toString())
-      .filter(Boolean);
+      .filter(rp => rp.resourceId && rp.permissionId)
+      .map(rp => ({
+        resource_id: rp.resourceId.toString(),
+        permission_id: rp.permissionId.toString()
+      }));
   }
 
   /**
-   * Створює мапу меню на основі дозволених permission IDs
-   * @param {Array<string>} allowedPermissionIds - Дозволені permission IDs
+   * Створює мапу меню на основі дозволених permission пар
+   * @param {Array<{resource_id: string, permission_id: string}>} allowedPermissionPairs
    * @returns {Promise<Map>} - Мапа меню (id => menu)
    */
-  async buildMenuMap(allowedPermissionIds) {
-    const allowedMenus = await this.fetchAllowedMenus(allowedPermissionIds);
+  async buildMenuMap(allowedPermissionPairs) {
+    const allowedMenus = await this.fetchAllowedMenus(allowedPermissionPairs);
     const menuMap = this.initMenuMap(allowedMenus);
     await this.addParentMenus(menuMap);
     return menuMap;
   }
 
   /**
-   * Отримує меню, які мають дозволи
-   * @param {Array<string>} allowedPermissionIds - Дозволені permission IDs
-   * @returns {Promise<Array>} - Масив дозволених меню
+   * Отримує дозволені меню з урахуванням пар (resource + permission)
+   * @param {Array<{resource_id: string, permission_id: string}>} allowedPermissionPairs
+   * @returns {Promise<Array>}
    */
-  async fetchAllowedMenus(allowedPermissionIds) {
+  async fetchAllowedMenus(allowedPermissionPairs) {
     return MenuCollection.find({
-      permission_id: { $in: allowedPermissionIds }
+      $or: [
+        { resource_id: null },
+        { permission_id: null },
+        {
+          $or: allowedPermissionPairs.map(pair => ({
+            resource_id: pair.resource_id,
+            permission_id: pair.permission_id
+          }))
+        }
+      ]
     }).lean();
   }
 
   /**
    * Ініціалізує мапу меню з дозволених меню
-   * @param {Array} menus - Масив дозволених меню
-   * @returns {Map} - Мапа меню (id => menu)
+   * @param {Array} menus
+   * @returns {Map}
    */
   initMenuMap(menus) {
     const menuMap = new Map();
@@ -67,21 +76,18 @@ class MenusService {
       this.normalizeMenuIds(menu);
       menu.children = [];
       menuMap.set(menu._id, menu);
-
       if (menu.parent_id) {
         parentIdsToCheck.add(menu.parent_id);
       }
     });
 
-    // Зберігаємо для подальшого використання
     menuMap.parentIdsToCheck = parentIdsToCheck;
     return menuMap;
   }
 
   /**
-   * Додає батьківські меню до мапи, якщо вони потрібні
-   * @param {Map} menuMap - Мапа меню
-   * @returns {Promise<void>}
+   * Додає батьківські меню, які є предками дозволених меню
+   * @param {Map} menuMap
    */
   async addParentMenus(menuMap) {
     const parentMenus = await this.fetchParentMenus(menuMap.parentIdsToCheck);
@@ -98,20 +104,19 @@ class MenusService {
 
   /**
    * Отримує батьківські меню
-   * @param {Set} parentIds - ID батьківських меню
-   * @returns {Promise<Array>} - Масив батьківських меню
+   * @param {Set<string>} parentIds
+   * @returns {Promise<Array>}
    */
   async fetchParentMenus(parentIds) {
     return MenuCollection.find({
-      _id: { $in: [...parentIds] },
-      ...HEADER_MENU_CONDITION
+      _id: { $in: [...parentIds] }
     }).lean();
   }
 
   /**
-   * Перевіряє, чи є у меню діти в мапі
-   * @param {string} parentId - ID батьківського меню
-   * @param {Map} menuMap - Мапа меню
+   * Чи має батьківський пункт дочірні в мапі
+   * @param {string} parentId
+   * @param {Map} menuMap
    * @returns {boolean}
    */
   hasChildInMenuMap(parentId, menuMap) {
@@ -119,19 +124,20 @@ class MenusService {
   }
 
   /**
-   * Нормалізує ID в меню (конвертує в строки)
-   * @param {Object} menu - Об'єкт меню
+   * Нормалізує всі ID в меню до string
+   * @param {Object} menu
    */
   normalizeMenuIds(menu) {
     menu._id = menu._id.toString();
     if (menu.parent_id) menu.parent_id = menu.parent_id.toString();
     if (menu.permission_id) menu.permission_id = menu.permission_id.toString();
+    if (menu.resource_id) menu.resource_id = menu.resource_id.toString();
   }
 
   /**
-   * Будує дерево меню з мапи
-   * @param {Map} menuMap - Мапа меню
-   * @returns {Array} - Масив кореневих меню
+   * Побудова дерева з мапи меню
+   * @param {Map} menuMap
+   * @returns {Array}
    */
   buildMenuTree(menuMap) {
     const rootMenus = [];
@@ -147,15 +153,22 @@ class MenusService {
     return rootMenus;
   }
 
+  /**
+   * Отримує всі кореневі пункти меню
+   * @returns {Promise<Array>}
+   */
   async getParentMenuItems() {
-    return MenuCollection.find({parent_id: null});
+    return MenuCollection.find({ parent_id: null }).lean();
   }
 
-  async addMenuItem(data){
+  /**
+   * Додає новий пункт меню
+   * @param {Object} data
+   * @returns {Promise<Object>}
+   */
+  async addMenuItem(data) {
     const menu = await MenuCollection.create(data);
-
-    const menuData = menu.toObject();
-    return menuData;
+    return menu.toObject();
   }
 }
 

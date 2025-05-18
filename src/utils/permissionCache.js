@@ -5,8 +5,6 @@ export const getCachedPermissionsForRole = async (roleId) => {
   const cacheKey = `role_permissions:${roleId}`;
   const cached = await redisClient.get(cacheKey);
 
-  console.log(cached);
-
   if (cached) {
     return JSON.parse(cached);
   }

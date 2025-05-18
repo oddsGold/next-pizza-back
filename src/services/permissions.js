@@ -23,6 +23,12 @@ class PermissionsService {
     return PermissionsCollection.find().lean();
   }
 
+  async addPermission(data) {
+    const permissions = await RolePermissionCollection.create(data);
+
+    return permissions.toObject();
+  }
+
 }
 
 export default new PermissionsService();
