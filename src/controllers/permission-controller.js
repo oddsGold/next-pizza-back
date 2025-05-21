@@ -52,6 +52,61 @@ class PermissionController {
     });
   }
 
+  async allPermissions(req, res, next) {
+    const permissions = await PermissionsService.getAllPermissions();
+
+    if(!permissions) {
+      return next(createHttpError(401, 'Permissions not found'));
+    }
+
+    res.json({
+      status: 200,
+      message: 'Successfully found all permissions!',
+      data: permissions,
+    });
+  }
+
+  async getPermissionByRoleAndResource(req, res, next) {
+    const { roleId, resourceId } = req.params;
+
+    const permissions = await PermissionsService.permissionByRoleAndResource(roleId, resourceId);
+
+    if(!permissions) {
+      return next(createHttpError(401, 'Permissions not found'));
+    }
+
+    res.json({
+      status: 200,
+      message: `Successfully get a permission by role and resource!`,
+      data: permissions,
+    });
+  }
+
+  async updatePermissions(req, res, next){
+    const { permissionId } = req.body;
+    const { roleId, resourceId } = req.params;
+
+    const permissions = await PermissionsService.updatePermissions(roleId, resourceId, permissionId);
+
+    if(!permissions) {
+      return next(createHttpError(401, 'Permissions not found'));
+    }
+
+    res.json({
+      status: 200,
+      message: `Successfully patched a permission!`,
+      data: permissions,
+    });
+  }
+
+  async deletePermissionByRoleAndResource(req, res, next) {
+    const { roleId, resourceId } = req.params;
+
+    await PermissionsService.deletePermissions( roleId, resourceId);
+
+    res.status(204).send();
+  }
+
 }
 
 export default new PermissionController();

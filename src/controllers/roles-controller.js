@@ -17,6 +17,20 @@ class RoleController {
     });
   }
 
+  async addRole(req, res, next) {
+    const roles = await RolesService.addNewRole(req.body);
+
+    if(!roles) {
+      return next(createHttpError(401, 'Roles not found'));
+    }
+
+    res.json({
+      status: 200,
+      message: 'Successfully found permissions!',
+      data: roles,
+    });
+  }
+
 }
 
 export default new RoleController();

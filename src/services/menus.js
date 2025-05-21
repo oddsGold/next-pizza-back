@@ -150,7 +150,11 @@ class MenusService {
       }
     });
 
-    return rootMenus;
+    return rootMenus.filter(menu => {
+      const hasChildren = menu.children.length > 0;
+      const hasUrn = menu.urn && menu.urn.trim() !== '';
+      return hasChildren || hasUrn;
+    });
   }
 
   /**
@@ -167,7 +171,13 @@ class MenusService {
    * @returns {Promise<Object>}
    */
   async addMenuItem(data) {
-    const menu = await MenuCollection.create(data);
+    const cleanUrn = data.urn.replace(/^[/\\\-*+[\]{}]+/, '');
+
+    const menu = await MenuCollection.create({
+      ...data,
+      urn: cleanUrn,
+    });
+
     return menu.toObject();
   }
 }
