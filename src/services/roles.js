@@ -12,6 +12,10 @@ class RolesService {
     return role.toObject();
   }
 
+  async deleteRole(id) {
+    return RolesCollection.deleteOne({ _id: id });
+  }
+
 }
 
 export default new RolesService();

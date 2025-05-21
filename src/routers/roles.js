@@ -8,5 +8,6 @@ const rolesRouter = new Router();
 
 rolesRouter.get('/roles', authenticate, ctrlWrapper(RolesController.roles));
 rolesRouter.post('/roles', authenticate,  permissions('Models\\Role', 'create'), ctrlWrapper(RolesController.addRole));
+rolesRouter.delete('/roles/:id', authenticate,  permissions('Models\\Role', 'delete'), ctrlWrapper(RolesController.deleteRole));
 
 export default rolesRouter;

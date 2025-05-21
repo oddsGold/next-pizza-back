@@ -31,6 +31,14 @@ class RoleController {
     });
   }
 
+  async deleteRole(req, res, next) {
+    const { id } = req.params;
+
+    await RolesService.deleteRole(id);
+
+    res.status(204).send();
+  }
+
 }
 
 export default new RoleController();
